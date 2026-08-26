@@ -28,6 +28,28 @@ public class StockMovement
         Note = note;
     }
 
+    /// <summary>
+    /// Creates a movement for a specific item, wiring both the foreign key and the
+    /// navigation back-reference. Called only by <see cref="InventoryItem.PostMovement"/>
+    /// so that every movement is born already attached to its item — which keeps the
+    /// item's <see cref="InventoryItem.UnitCost"/> reachable for waste valuation even
+    /// before EF Core has loaded the navigation.
+    /// </summary>
+    internal static StockMovement CreateFor(
+        InventoryItem item,
+        MovementType type,
+        decimal quantity,
+        DateTimeOffset timestamp,
+        string? reason,
+        WasteReason? wasteReason,
+        string? note)
+    {
+        return new StockMovement(item.Id, type, quantity, timestamp, reason, wasteReason, note)
+        {
+            InventoryItem = item,
+        };
+    }
+
     public int Id { get; private set; }
 
     public int InventoryItemId { get; private set; }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantInventory.Core.Persistence;
+using RestaurantInventory.Core.Services;
 using RestaurantInventory.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<InventoryDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Inventory")));
+
+// The ledger seam every Blazor page calls into (ticket 02).
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<InventoryService>();
 
 var app = builder.Build();
 
