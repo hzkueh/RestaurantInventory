@@ -6,6 +6,12 @@ showcase a clean .NET backend.
 
 ## Language
 
+**Manager**:
+The single person who runs the restaurant's inventory — the only user of the system.
+Signs in with a seeded account and is the actor behind every StockMovement and reorder
+decision. There is no other role or user; multi-user is deliberately out of scope.
+_Avoid_: User, admin, staff, operator, account
+
 **InventoryItem**:
 A consumable the kitchen holds in stock — a raw ingredient or supply that gets
 used up (flour, tomatoes, oil). Has one UnitOfMeasure, a ReorderLevel, and a

@@ -1,7 +1,14 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home · Restaurant Inventory</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Restaurant Inventory</h1>
 
-Welcome to your new app.
+<AuthorizeView>
+    <p class="lead">Signed in as <strong>@context.User.Identity?.Name</strong>.</p>
+</AuthorizeView>
+
+<p>
+    Track what the kitchen holds, record deliveries and waste, and spot shortages before
+    a line cook reaches for an empty tub. Use the navigation to manage inventory.
+</p>

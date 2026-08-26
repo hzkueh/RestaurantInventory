@@ -4,12 +4,12 @@
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] ASP.NET Core Identity configured with cookie auth; one Manager account is seeded on startup.
-- [ ] Login page: the seeded Manager can sign in.
-- [ ] The session persists across page loads via the auth cookie — no re-authentication on every action.
-- [ ] Sign-out control ends the session.
-- [ ] All inventory pages require authentication; hitting any of them while unauthenticated redirects to Login.
-- [ ] An authenticated layout / navigation shell exists for subsequent screens to plug into.
-- [ ] Covers user stories 1–4.
+- [x] ASP.NET Core Identity configured with cookie auth; one Manager account is seeded on startup.
+- [x] Login page: the seeded Manager can sign in.
+- [x] The session persists across page loads via the auth cookie — no re-authentication on every action.
+- [x] Sign-out control ends the session.
+- [x] All inventory pages require authentication; hitting any of them while unauthenticated redirects to Login.
+- [x] An authenticated layout / navigation shell exists for subsequent screens to plug into.
+- [x] Covers user stories 1–4.

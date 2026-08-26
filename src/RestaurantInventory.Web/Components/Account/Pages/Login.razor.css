@@ -1,0 +1,28 @@
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: linear-gradient(160deg, #1b6ec2 0%, #12457a 100%);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 24rem;
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 2.25rem 2rem;
+    box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.25);
+}
+
+.login-card h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.login-sub {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    font-size: 0.925rem;
+}

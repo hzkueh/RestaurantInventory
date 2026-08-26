@@ -1,0 +1,101 @@
+@page "/login"
+@layout RestaurantInventory.Web.Components.Layout.EmptyLayout
+@attribute [AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Navigation
+
+<PageTitle>Sign in · Restaurant Inventory</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card">
+        <h1>Restaurant Inventory</h1>
+        <p class="login-sub">Sign in to manage stock, waste, and shortages.</p>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="SignInAsync" FormName="login">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="alert alert-danger" role="alert">@_error</div>
+            }
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username"
+                           aria-required="true" placeholder="manager@restaurant.local" />
+                <label>Email</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText type="password" @bind-Value="Input.Password" class="form-control"
+                           autocomplete="current-password" aria-required="true" placeholder="password" />
+                <label>Password</label>
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="remember" />
+                <label class="form-check-label" for="remember">Keep me signed in</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Sign in</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? _error;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task SignInAsync()
+    {
+        // Username is the email (see ManagerSeeder). Runs inside the SSR POST's HttpContext,
+        // so SignInManager can write the auth cookie before we redirect.
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        if (!result.Succeeded)
+        {
+            _error = "Invalid email or password.";
+            return;
+        }
+
+        Navigation.NavigateTo(ResolveReturnUrl());
+    }
+
+    private string ResolveReturnUrl()
+    {
+        // Only honour a local relative path — never an absolute URL an attacker could supply.
+        if (!string.IsNullOrEmpty(ReturnUrl)
+            && !ReturnUrl.StartsWith("//")
+            && Uri.TryCreate(ReturnUrl, UriKind.Relative, out _))
+        {
+            return ReturnUrl;
+        }
+
+        return "/";
+    }
+
+    private sealed class LoginModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; } = true;
+    }
+}

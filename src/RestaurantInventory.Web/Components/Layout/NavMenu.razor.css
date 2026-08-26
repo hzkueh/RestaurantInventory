@@ -96,10 +96,34 @@
 
     .nav-scrollable {
         /* Never collapse the sidebar for wide screens */
-        display: block;
+        display: flex;
+        flex-direction: column;
 
         /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
     }
+}
+
+.nav-user {
+    margin-top: auto;
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-user-email {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 0.5rem 0.25rem;
+}
+
+.sign-out {
+    width: 100%;
+    text-align: left;
+    text-decoration: none;
+    border: none;
 }

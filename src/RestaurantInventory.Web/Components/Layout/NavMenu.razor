@@ -1,6 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">RestaurantInventory.Web</a>
+        <a class="navbar-brand" href="">Restaurant Inventory</a>
     </div>
 </div>
 
@@ -13,18 +13,19 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
     </nav>
-</div>
 
+    <AuthorizeView>
+        <div class="nav-user px-3">
+            <div class="nav-user-email" title="@context.User.Identity?.Name">
+                @context.User.Identity?.Name
+            </div>
+            <form action="account/logout" method="post">
+                <AntiforgeryToken />
+                <button type="submit" class="btn btn-link nav-link sign-out">
+                    <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Sign out
+                </button>
+            </form>
+        </div>
+    </AuthorizeView>
+</div>
