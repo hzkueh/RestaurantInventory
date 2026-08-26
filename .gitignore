@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Rider / VS / VS Code
+.vs/
+.idea/
+*.user
+*.suo
+
+# SQLite database files (recreated on run via migrations)
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets — AI key lives here (see ADR-0002); .env.example is committed
+.env
+
+# OS
+.DS_Store
+Thumbs.db
