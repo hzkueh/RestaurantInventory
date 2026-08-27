@@ -1,4 +1,5 @@
 @page "/items/{Id:int}"
+@using Microsoft.AspNetCore.Http
 @inject InventoryService Inventory
 
 <PageTitle>@(_item?.Name ?? "Item") · Restaurant Inventory</PageTitle>
@@ -78,8 +79,8 @@ else
                         <tr>
                             <td class="text-nowrap">@m.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>@m.Type</td>
-                            <td class="text-end text-nowrap">@SignedChange(m)</td>
-                            <td>@ReasonText(m)</td>
+                            <td class="text-end text-nowrap">@MovementDisplay.ChangeText(m, _item.UnitOfMeasure)</td>
+                            <td>@MovementDisplay.ReasonText(m)</td>
                         </tr>
                     }
                 </tbody>
@@ -92,47 +93,35 @@ else
     [Parameter]
     public int Id { get; set; }
 
+    // Supplied by the framework during static SSR (null under interactive rendering). Used to
+    // return an honest 404 status for a missing item, matching how unknown routes respond.
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
     private InventoryItem? _item;
     private bool _loaded;
-
-    // Newest-first, computed once after load. Id breaks ties for movements sharing a timestamp
-    // (e.g. seeded rows) so the order is stable.
     private IReadOnlyList<StockMovement> _movements = Array.Empty<StockMovement>();
 
     protected override async Task OnParametersSetAsync()
     {
         _item = await Inventory.GetItemDetailAsync(Id);
         _loaded = true;
-        _movements = _item is null
-            ? Array.Empty<StockMovement>()
-            : _item.Movements
-                .OrderByDescending(m => m.Timestamp)
-                .ThenByDescending(m => m.Id)
-                .ToList();
-    }
 
-    // The effect the movement had on QuantityOnHand, signed so the history reads like a ledger:
-    // Received adds, Wasted subtracts, Adjusted is already signed as posted.
-    private string SignedChange(StockMovement m)
-    {
-        var delta = m.Type switch
+        if (_item is null)
         {
-            MovementType.Received => m.Quantity,
-            MovementType.Wasted => -m.Quantity,
-            _ => m.Quantity,
-        };
-        var sign = delta > 0 ? "+" : "";
-        return $"{sign}{UnitDisplay.Quantity(delta, _item!.UnitOfMeasure)}";
-    }
+            // Report the missing item as a 404 rather than a 200, matching how the app answers
+            // unknown routes. Under static SSR this status drives UseStatusCodePagesWithReExecute
+            // to render the shared /not-found page; the fallback body below is what shows if the
+            // page is ever rendered interactively (no HttpContext to set a status on).
+            if (HttpContext is not null)
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
 
-    private static string ReasonText(StockMovement m)
-    {
-        if (m.Type == MovementType.Wasted)
-        {
-            var reason = m.WasteReason?.ToString() ?? "";
-            return string.IsNullOrWhiteSpace(m.Note) ? reason : $"{reason} — {m.Note}";
+            _movements = Array.Empty<StockMovement>();
+            return;
         }
 
-        return m.Reason ?? "";
+        _movements = MovementDisplay.NewestFirst(_item.Movements);
     }
 }

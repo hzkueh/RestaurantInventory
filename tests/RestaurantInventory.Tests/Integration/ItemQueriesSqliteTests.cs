@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RestaurantInventory.Core.Domain;
 using RestaurantInventory.Core.Services;
+using RestaurantInventory.Web.Components.Pages.Inventory;
 
 namespace RestaurantInventory.Tests.Integration;
 
@@ -102,6 +103,22 @@ public sealed class ItemQueriesSqliteTests : IDisposable
         var item = await NewService().GetItemDetailAsync(9999);
 
         Assert.Null(item);
+    }
+
+    [Fact]
+    public async Task MovementHistory_NewestFirst_BreaksTimestampTiesByIdDescending()
+    {
+        // The fixed TestClock stamps every movement with the same timestamp, so ordering falls
+        // entirely to the id tiebreaker — the last posted must read first in the audit view.
+        var itemId = SeedItem("Butter", reorderLevel: 0m);
+        var first = await NewService().PostMovementAsync(itemId, MovementType.Received, 5m);
+        var second = await NewService().PostMovementAsync(itemId, MovementType.Received, 5m);
+        var third = await NewService().PostMovementAsync(itemId, MovementType.Wasted, 1m, wasteReason: WasteReason.Spoiled);
+
+        var item = await NewService().GetItemDetailAsync(itemId);
+        var ordered = MovementDisplay.NewestFirst(item!.Movements);
+
+        Assert.Equal(new[] { third.Id, second.Id, first.Id }, ordered.Select(m => m.Id).ToArray());
     }
 
     public void Dispose() => _db.Dispose();
