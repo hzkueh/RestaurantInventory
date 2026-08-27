@@ -1,0 +1,138 @@
+@page "/items/{Id:int}"
+@inject InventoryService Inventory
+
+<PageTitle>@(_item?.Name ?? "Item") · Restaurant Inventory</PageTitle>
+
+@if (_loaded && _item is null)
+{
+    <h1>Item not found</h1>
+    <p class="text-muted">No inventory item has id @Id.</p>
+    <a href="/items">&larr; Back to items</a>
+}
+else if (_item is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <a href="/items">&larr; Back to items</a>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <h1 class="mb-0">@_item.Name</h1>
+        @if (_item.IsInShortage)
+        {
+            <span class="badge text-bg-warning">Shortage</span>
+        }
+    </div>
+
+    @* Status in one place (user story 13): the four figures a Manager needs to judge the item. *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">On hand</div>
+                <div class="fs-5">@UnitDisplay.Quantity(_item.QuantityOnHand, _item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Reorder level</div>
+                <div class="fs-5">@UnitDisplay.Quantity(_item.ReorderLevel, _item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Unit of measure</div>
+                <div class="fs-5">@UnitDisplay.Abbreviation(_item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Unit cost</div>
+                <div class="fs-5">@_item.UnitCost.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4">Movement history</h2>
+    @if (_movements.Count == 0)
+    {
+        <p class="text-muted">No movements posted yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">When (UTC)</th>
+                        <th scope="col">Type</th>
+                        <th scope="col" class="text-end">Change</th>
+                        <th scope="col">Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _movements)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@m.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@m.Type</td>
+                            <td class="text-end text-nowrap">@SignedChange(m)</td>
+                            <td>@ReasonText(m)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private InventoryItem? _item;
+    private bool _loaded;
+
+    // Newest-first, computed once after load. Id breaks ties for movements sharing a timestamp
+    // (e.g. seeded rows) so the order is stable.
+    private IReadOnlyList<StockMovement> _movements = Array.Empty<StockMovement>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _item = await Inventory.GetItemDetailAsync(Id);
+        _loaded = true;
+        _movements = _item is null
+            ? Array.Empty<StockMovement>()
+            : _item.Movements
+                .OrderByDescending(m => m.Timestamp)
+                .ThenByDescending(m => m.Id)
+                .ToList();
+    }
+
+    // The effect the movement had on QuantityOnHand, signed so the history reads like a ledger:
+    // Received adds, Wasted subtracts, Adjusted is already signed as posted.
+    private string SignedChange(StockMovement m)
+    {
+        var delta = m.Type switch
+        {
+            MovementType.Received => m.Quantity,
+            MovementType.Wasted => -m.Quantity,
+            _ => m.Quantity,
+        };
+        var sign = delta > 0 ? "+" : "";
+        return $"{sign}{UnitDisplay.Quantity(delta, _item!.UnitOfMeasure)}";
+    }
+
+    private static string ReasonText(StockMovement m)
+    {
+        if (m.Type == MovementType.Wasted)
+        {
+            var reason = m.WasteReason?.ToString() ?? "";
+            return string.IsNullOrWhiteSpace(m.Note) ? reason : $"{reason} — {m.Note}";
+        }
+
+        return m.Reason ?? "";
+    }
+}

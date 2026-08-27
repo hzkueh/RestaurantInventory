@@ -59,15 +59,45 @@ public sealed class InventoryService
     }
 
     /// <summary>
-    /// Items currently in Shortage (<see cref="InventoryItem.IsInShortage"/>), name-ordered.
+    /// Every item name-ordered, or — when <paramref name="shortagesOnly"/> is set — only those
+    /// currently in Shortage (<see cref="InventoryItem.IsInShortage"/>). Backs the items list and
+    /// its Shortage filter; the returned items carry their cached <see cref="InventoryItem.QuantityOnHand"/>
+    /// and computed Shortage flag so a caller can render the badge without further queries.
     /// </summary>
-    public async Task<IReadOnlyList<InventoryItem>> GetShortagesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<InventoryItem>> GetItemsAsync(
+        bool shortagesOnly = false,
+        CancellationToken cancellationToken = default)
     {
         var items = await _db.InventoryItems.AsNoTracking().ToListAsync(cancellationToken);
-        return items
-            .Where(i => i.IsInShortage)
-            .OrderBy(i => i.Name)
-            .ToList();
+        IEnumerable<InventoryItem> result = items;
+        if (shortagesOnly)
+        {
+            result = result.Where(i => i.IsInShortage);
+        }
+
+        return result.OrderBy(i => i.Name).ToList();
+    }
+
+    /// <summary>
+    /// Items currently in Shortage (<see cref="InventoryItem.IsInShortage"/>), name-ordered.
+    /// The single Shortage query — the list filter and the dashboard both go through it.
+    /// </summary>
+    public Task<IReadOnlyList<InventoryItem>> GetShortagesAsync(CancellationToken cancellationToken = default)
+        => GetItemsAsync(shortagesOnly: true, cancellationToken);
+
+    /// <summary>
+    /// One item together with its full StockMovement history for the detail page, or
+    /// <c>null</c> when no item has that id. Movements are loaded but not ordered here —
+    /// the caller sorts for display (newest-first).
+    /// </summary>
+    public async Task<InventoryItem?> GetItemDetailAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.InventoryItems
+            .AsNoTracking()
+            .Include(i => i.Movements)
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
     /// <summary>
