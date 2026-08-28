@@ -1,0 +1,156 @@
+@page "/items/{Id:int}/movements/new"
+@rendermode InteractiveServer
+@inject InventoryService Inventory
+@inject NavigationManager Navigation
+
+<PageTitle>@(_item is null ? "Record movement" : $"Record movement · {_item.Name}") · Restaurant Inventory</PageTitle>
+
+@if (_loaded && _item is null)
+{
+    <h1>Item not found</h1>
+    <p class="text-muted">No inventory item has id @Id.</p>
+    <a href="/items">&larr; Back to items</a>
+}
+else if (_item is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <a href="/items/@Id">&larr; Back to @_item.Name</a>
+    </div>
+
+    <h1 class="mb-1">Record movement</h1>
+    <p class="text-muted">
+        @_item.Name — on hand @UnitDisplay.Quantity(_item.QuantityOnHand, _item.UnitOfMeasure)
+    </p>
+
+    <div class="row">
+        <div class="col-12 col-lg-6">
+            <EditForm Model="Input" OnValidSubmit="PostAsync" FormName="record-movement">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger" role="alert">@_error</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label" for="type">Movement type</label>
+                    <InputSelect id="type" @bind-Value="Input.Type" class="form-select">
+                        <option value="@MovementType.Received">Received (delivery in)</option>
+                        <option value="@MovementType.Wasted">Wasted (loss out)</option>
+                        <option value="@MovementType.Adjusted">Adjusted (stock-count correction)</option>
+                    </InputSelect>
+                    <div class="form-text">@TypeHint()</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="quantity">
+                        Quantity (@UnitDisplay.Abbreviation(_item.UnitOfMeasure))
+                    </label>
+                    <InputNumber id="quantity" @bind-Value="Input.Quantity" class="form-control" step="0.001" />
+                    <ValidationMessage For="() => Input.Quantity" class="text-danger" />
+                </div>
+
+                @* WasteReason + note apply to a Wasted movement only (acceptance criterion #4). *@
+                @if (MovementForm.ShowsWasteFields(Input.Type))
+                {
+                    <div class="mb-3">
+                        <label class="form-label" for="wasteReason">Waste reason</label>
+                        <InputSelect id="wasteReason" @bind-Value="Input.WasteReason" class="form-select">
+                            <option value="">— choose a reason —</option>
+                            @foreach (var reason in Enum.GetValues<WasteReason>())
+                            {
+                                <option value="@reason">@reason</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => Input.WasteReason" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="note">Note <span class="text-muted">(optional)</span></label>
+                        <InputTextArea id="note" @bind-Value="Input.Note" class="form-control" rows="2"
+                                       placeholder="Context the reason alone doesn't carry" />
+                        <ValidationMessage For="() => Input.Note" class="text-danger" />
+                    </div>
+
+                    @* Preview the money value only once a positive quantity is entered — a Waste is
+                       always a positive quantity out, so 0 or a stray minus sign has nothing to value. *@
+                    @if (Input.Quantity > 0)
+                    {
+                        <div class="mb-3 text-muted">
+                            Value of this waste: <strong>@MovementDisplay.WasteMoney(Input.Quantity, _item.UnitCost).ToString("C")</strong>
+                            <span class="small">(@UnitDisplay.Quantity(Input.Quantity, _item.UnitOfMeasure) × @_item.UnitCost.ToString("C"))</span>
+                        </div>
+                    }
+                }
+
+                @* A free-text reason is required for an Adjusted movement; a sign is allowed on the quantity. *@
+                @if (MovementForm.RequiresReason(Input.Type))
+                {
+                    <div class="mb-3">
+                        <label class="form-label" for="reason">Reason</label>
+                        <InputText id="reason" @bind-Value="Input.Reason" class="form-control"
+                                   placeholder="e.g. physical count correction" />
+                        <ValidationMessage For="() => Input.Reason" class="text-danger" />
+                        <div class="form-text">Enter a negative quantity to decrease stock, positive to increase.</div>
+                    </div>
+                }
+
+                <div class="d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary">Post movement</button>
+                    <a href="/items/@Id" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private RecordMovementModel Input { get; set; } = new();
+
+    private InventoryItem? _item;
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _item = await Inventory.GetItemDetailAsync(Id);
+        _loaded = true;
+    }
+
+    private string TypeHint() => Input.Type switch
+    {
+        MovementType.Received => "A delivery in — increases quantity on hand.",
+        MovementType.Wasted => "A loss out — decreases quantity on hand; needs a waste reason.",
+        MovementType.Adjusted => "A physical-count correction — may be positive or negative.",
+        _ => "",
+    };
+
+    private async Task PostAsync()
+    {
+        // Normalise by type so a field the Manager filled in before switching types (e.g. a note
+        // typed while "Wasted", then changed to "Received") never leaks onto the posted movement.
+        var type = Input.Type;
+        var reason = MovementForm.RequiresReason(type) ? Input.Reason : null;
+        var wasteReason = MovementForm.ShowsWasteFields(type) ? Input.WasteReason : null;
+        var note = MovementForm.ShowsWasteFields(type) ? Input.Note : null;
+
+        // The form's IValidatableObject catches bad input first, but the aggregate is the authority
+        // and re-validates: surface any rejection it raises as a form-level error, not a 500.
+        try
+        {
+            await Inventory.PostMovementAsync(Id, type, Input.Quantity, reason, wasteReason, note);
+            Navigation.NavigateTo($"/items/{Id}");
+        }
+        catch (InvalidMovementException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

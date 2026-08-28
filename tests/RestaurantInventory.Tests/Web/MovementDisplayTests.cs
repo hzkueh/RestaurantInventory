@@ -80,4 +80,33 @@ public sealed class MovementDisplayTests
 
         Assert.Equal(new[] { newest, middle, oldest }, ordered);
     }
+
+    [Fact]
+    public void WasteValue_IsQuantityTimesUnitCost_ForWasteOnly()
+    {
+        // A Waste is valued in money via the item's UnitCost (user story 23 / criterion #8):
+        // 3 units wasted at 2.50 each = 7.50.
+        var waste = Movement(MovementType.Wasted, 3m, wasteReason: WasteReason.Spoiled);
+        Assert.Equal(7.50m, MovementDisplay.WasteValue(waste, unitCost: 2.50m));
+
+        // Non-waste movements carry no waste value.
+        Assert.Null(MovementDisplay.WasteValue(Movement(MovementType.Received, 3m), unitCost: 2.50m));
+        Assert.Null(MovementDisplay.WasteValue(Movement(MovementType.Adjusted, -3m, reason: "recount"), unitCost: 2.50m));
+    }
+
+    [Fact]
+    public void WasteValue_RoundsToTwoPlaces()
+    {
+        // 1.005 × 1 rounds away from zero to 1.01, matching the aggregation rounding.
+        var waste = Movement(MovementType.Wasted, 1.005m, wasteReason: WasteReason.Spoiled);
+        Assert.Equal(1.01m, MovementDisplay.WasteValue(waste, unitCost: 1m));
+    }
+
+    [Fact]
+    public void WasteValueText_FormatsWasteAsCurrency_AndBlankOtherwise()
+    {
+        var waste = Movement(MovementType.Wasted, 2m, wasteReason: WasteReason.Spoiled);
+        Assert.Equal(2.50m.ToString("C"), MovementDisplay.WasteValueText(waste, unitCost: 1.25m));
+        Assert.Equal("", MovementDisplay.WasteValueText(Movement(MovementType.Received, 2m), unitCost: 1.25m));
+    }
 }

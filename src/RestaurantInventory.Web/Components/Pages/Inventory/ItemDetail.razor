@@ -26,7 +26,10 @@ else
         {
             <span class="badge text-bg-warning">Shortage</span>
         }
-        <a class="btn btn-sm btn-outline-secondary ms-auto" href="/items/@_item.Id/edit">Edit item</a>
+        <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-sm btn-primary" href="/items/@_item.Id/movements/new">Record movement</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/items/@_item.Id/edit">Edit item</a>
+        </div>
     </div>
 
     @* Status in one place (user story 13): the four figures a Manager needs to judge the item. *@
@@ -71,6 +74,7 @@ else
                         <th scope="col">When (UTC)</th>
                         <th scope="col">Type</th>
                         <th scope="col" class="text-end">Change</th>
+                        <th scope="col" class="text-end">Waste value</th>
                         <th scope="col">Reason</th>
                     </tr>
                 </thead>
@@ -81,6 +85,7 @@ else
                             <td class="text-nowrap">@m.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>@m.Type</td>
                             <td class="text-end text-nowrap">@MovementDisplay.ChangeText(m, _item.UnitOfMeasure)</td>
+                            <td class="text-end text-nowrap">@MovementDisplay.WasteValueText(m, _item.UnitCost)</td>
                             <td>@MovementDisplay.ReasonText(m)</td>
                         </tr>
                     }
