@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Post a `Received` movement with a quantity; `QuantityOnHand` increases.
-- [ ] Post a `Wasted` movement with a quantity and a required `WasteReason` plus an optional note; `QuantityOnHand` decreases.
-- [ ] Post an `Adjusted` movement (positive or negative) with a reason.
-- [ ] Type-aware form: `WasteReason` + note fields appear only for `Wasted`; a sign is allowed for `Adjusted`.
-- [ ] Each movement is timestamped automatically.
-- [ ] Nonsensical movements (e.g. non-positive quantity where a positive is required, or a Waste missing its reason) are rejected and the error is surfaced to the Manager.
-- [ ] After posting, the list and detail views reflect the latest `QuantityOnHand` immediately.
-- [ ] A recorded Waste is shown valued in money via the item's `UnitCost`.
-- [ ] Covers user stories 15–23.
+- [x] Post a `Received` movement with a quantity; `QuantityOnHand` increases.
+- [x] Post a `Wasted` movement with a quantity and a required `WasteReason` plus an optional note; `QuantityOnHand` decreases.
+- [x] Post an `Adjusted` movement (positive or negative) with a reason.
+- [x] Type-aware form: `WasteReason` + note fields appear only for `Wasted`; a sign is allowed for `Adjusted`.
+- [x] Each movement is timestamped automatically.
+- [x] Nonsensical movements (e.g. non-positive quantity where a positive is required, or a Waste missing its reason) are rejected and the error is surfaced to the Manager.
+- [x] After posting, the list and detail views reflect the latest `QuantityOnHand` immediately.
+- [x] A recorded Waste is shown valued in money via the item's `UnitCost`.
+- [x] Covers user stories 15–23.
