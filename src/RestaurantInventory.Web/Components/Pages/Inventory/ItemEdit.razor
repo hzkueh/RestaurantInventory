@@ -1,0 +1,125 @@
+@page "/items/{Id:int}/edit"
+@using Microsoft.AspNetCore.Http
+@inject InventoryService Inventory
+@inject NavigationManager Navigation
+
+<PageTitle>@(_item is null ? "Edit item" : $"Edit {_item.Name}") · Restaurant Inventory</PageTitle>
+
+@if (_loaded && _item is null)
+{
+    <h1>Item not found</h1>
+    <p class="text-muted">No inventory item has id @Id.</p>
+    <a href="/items">&larr; Back to items</a>
+}
+else if (_item is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <a href="/items/@Id">&larr; Back to @_item.Name</a>
+    </div>
+
+    <h1 class="mb-4">Edit @_item.Name</h1>
+
+    <div class="row">
+        <div class="col-12 col-lg-6">
+            <EditForm Model="Input" method="post" OnValidSubmit="SaveAsync" FormName="item-edit">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger" role="alert">@_error</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label" for="name">Name</label>
+                    <InputText id="name" @bind-Value="Input.Name" class="form-control" />
+                    <ValidationMessage For="() => Input.Name" class="text-danger" />
+                </div>
+
+                @* Unit of measure is fixed after creation (user story 8): shown for context, never edited. *@
+                <div class="mb-3">
+                    <label class="form-label">Unit of measure</label>
+                    <input class="form-control" value="@UnitDisplay.Abbreviation(_item.UnitOfMeasure)" disabled readonly />
+                    <div class="form-text">Fixed after creation to keep the movement history in one unit.</div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="unitCost">Unit cost</label>
+                        <InputNumber id="unitCost" @bind-Value="Input.UnitCost" class="form-control" step="0.01" />
+                        <ValidationMessage For="() => Input.UnitCost" class="text-danger" />
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="reorderLevel">Reorder level</label>
+                        <InputNumber id="reorderLevel" @bind-Value="Input.ReorderLevel" class="form-control" step="0.001" />
+                        <ValidationMessage For="() => Input.ReorderLevel" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a href="/items/@Id" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    // Supplied by the framework during static SSR; used to return a 404 for a missing item,
+    // matching ItemDetail and how unknown routes respond.
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    [SupplyParameterFromForm]
+    private ItemFormModel Input { get; set; } = default!;
+
+    private InventoryItem? _item;
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _item = await Inventory.GetItemDetailAsync(Id);
+        _loaded = true;
+
+        if (_item is null)
+        {
+            if (HttpContext is not null)
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+            return;
+        }
+
+        // Prefill from the item on the initial GET only (Input is null until the framework binds a
+        // post). On a form post Input already holds the Manager's edits, so leaving it untouched
+        // preserves what they typed (and any errors).
+        Input ??= new ItemFormModel
+        {
+            Name = _item.Name,
+            UnitOfMeasure = _item.UnitOfMeasure,
+            UnitCost = _item.UnitCost,
+            ReorderLevel = _item.ReorderLevel,
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await Inventory.UpdateItemAsync(Id, Input.Name, Input.UnitCost, Input.ReorderLevel);
+            Navigation.NavigateTo($"/items/{Id}");
+        }
+        catch (InvalidItemException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

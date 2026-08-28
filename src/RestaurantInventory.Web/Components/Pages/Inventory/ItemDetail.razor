@@ -1,0 +1,128 @@
+@page "/items/{Id:int}"
+@using Microsoft.AspNetCore.Http
+@inject InventoryService Inventory
+
+<PageTitle>@(_item?.Name ?? "Item") · Restaurant Inventory</PageTitle>
+
+@if (_loaded && _item is null)
+{
+    <h1>Item not found</h1>
+    <p class="text-muted">No inventory item has id @Id.</p>
+    <a href="/items">&larr; Back to items</a>
+}
+else if (_item is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <div class="mb-3">
+        <a href="/items">&larr; Back to items</a>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <h1 class="mb-0">@_item.Name</h1>
+        @if (_item.IsInShortage)
+        {
+            <span class="badge text-bg-warning">Shortage</span>
+        }
+        <a class="btn btn-sm btn-outline-secondary ms-auto" href="/items/@_item.Id/edit">Edit item</a>
+    </div>
+
+    @* Status in one place (user story 13): the four figures a Manager needs to judge the item. *@
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">On hand</div>
+                <div class="fs-5">@UnitDisplay.Quantity(_item.QuantityOnHand, _item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Reorder level</div>
+                <div class="fs-5">@UnitDisplay.Quantity(_item.ReorderLevel, _item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Unit of measure</div>
+                <div class="fs-5">@UnitDisplay.Abbreviation(_item.UnitOfMeasure)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="border rounded p-3 h-100">
+                <div class="text-muted small">Unit cost</div>
+                <div class="fs-5">@_item.UnitCost.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4">Movement history</h2>
+    @if (_movements.Count == 0)
+    {
+        <p class="text-muted">No movements posted yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">When (UTC)</th>
+                        <th scope="col">Type</th>
+                        <th scope="col" class="text-end">Change</th>
+                        <th scope="col">Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _movements)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@m.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@m.Type</td>
+                            <td class="text-end text-nowrap">@MovementDisplay.ChangeText(m, _item.UnitOfMeasure)</td>
+                            <td>@MovementDisplay.ReasonText(m)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    // Supplied by the framework during static SSR (null under interactive rendering). Used to
+    // return an honest 404 status for a missing item, matching how unknown routes respond.
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private InventoryItem? _item;
+    private bool _loaded;
+    private IReadOnlyList<StockMovement> _movements = Array.Empty<StockMovement>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _item = await Inventory.GetItemDetailAsync(Id);
+        _loaded = true;
+
+        if (_item is null)
+        {
+            // Report the missing item as a 404 rather than a 200, matching how the app answers
+            // unknown routes. Under static SSR this status drives UseStatusCodePagesWithReExecute
+            // to render the shared /not-found page; the fallback body below is what shows if the
+            // page is ever rendered interactively (no HttpContext to set a status on).
+            if (HttpContext is not null)
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+
+            _movements = Array.Empty<StockMovement>();
+            return;
+        }
+
+        _movements = MovementDisplay.NewestFirst(_item.Movements);
+    }
+}

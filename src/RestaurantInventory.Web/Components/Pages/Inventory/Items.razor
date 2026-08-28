@@ -1,0 +1,84 @@
+@page "/items"
+@inject InventoryService Inventory
+
+<PageTitle>Items · Restaurant Inventory</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="mb-0">Inventory items</h1>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        @* Read-only filter: a plain query-string toggle, so the page stays static SSR — no circuit
+           needed just to narrow a list. The two states are mutually exclusive links. *@
+        <div class="btn-group" role="group" aria-label="Filter items">
+            <a class="btn btn-sm @(ShortagesOnly ? "btn-outline-secondary" : "btn-secondary")"
+               href="/items">All items</a>
+            <a class="btn btn-sm @(ShortagesOnly ? "btn-warning" : "btn-outline-warning")"
+               href="/items?shortages=true">In shortage only</a>
+        </div>
+
+        <a class="btn btn-sm btn-primary" href="/items/new">New item</a>
+    </div>
+</div>
+
+@if (_items is null)
+{
+    <p><em>Loading…</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">
+        @(ShortagesOnly
+            ? "Nothing is in shortage right now."
+            : "No inventory items yet.")
+    </p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Item</th>
+                    <th scope="col" class="text-end">On hand</th>
+                    <th scope="col" class="text-end">Reorder level</th>
+                    <th scope="col" class="text-end">Unit cost</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _items)
+                {
+                    <tr>
+                        <td><a href="/items/@item.Id">@item.Name</a></td>
+                        <td class="text-end">@UnitDisplay.Quantity(item.QuantityOnHand, item.UnitOfMeasure)</td>
+                        <td class="text-end">@UnitDisplay.Quantity(item.ReorderLevel, item.UnitOfMeasure)</td>
+                        <td class="text-end">@item.UnitCost.ToString("C")</td>
+                        <td>
+                            @if (item.IsInShortage)
+                            {
+                                <span class="badge text-bg-warning">Shortage</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-light text-muted">OK</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    // Bound from ?shortages=true. When set, the list shows only items in Shortage.
+    [SupplyParameterFromQuery(Name = "shortages")]
+    private bool ShortagesOnly { get; set; }
+
+    private IReadOnlyList<InventoryItem>? _items;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _items = await Inventory.GetItemsAsync(shortagesOnly: ShortagesOnly);
+    }
+}
