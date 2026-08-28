@@ -1,0 +1,95 @@
+@page "/dashboard"
+@inject InventoryService Inventory
+
+<PageTitle>Dashboard · Restaurant Inventory</PageTitle>
+
+<h1 class="mb-3">Dashboard</h1>
+
+@if (_shortages is null || _waste is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @* Headline #1: reorder urgency in a single number (user story 24). *@
+        <div class="col-sm-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h6 text-muted mb-1">Items in shortage</h2>
+                    <p class="display-5 mb-2 @(_shortages.Count > 0 ? "text-warning" : "text-success")">
+                        @_shortages.Count
+                    </p>
+                    @if (_shortages.Count > 0)
+                    {
+                        <a href="/items?shortages=true">Review shortages</a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Everything is above its reorder level.</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Headline #2: what the recent waste cost, in money (user stories 25–26). *@
+        <div class="col-sm-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="card-title h6 text-muted mb-1">Waste (@_windowLabel)</h2>
+                    <p class="display-5 mb-2">@DashboardView.TotalWasteValue(_waste).ToString("C")</p>
+                    <span class="text-muted">Total value of stock wasted.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-2">Waste by reason <span class="text-muted fw-normal">(@_windowLabel)</span></h2>
+
+    @if (_waste.Count == 0)
+    {
+        <p class="text-muted">No waste recorded in the @_windowLabel.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Reason</th>
+                        <th scope="col" class="text-end">Value lost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _waste)
+                    {
+                        <tr>
+                            <td>@row.Reason</td>
+                            <td class="text-end">@row.MoneyValue.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-semibold border-top">
+                        <td>Total</td>
+                        <td class="text-end">@DashboardView.TotalWasteValue(_waste).ToString("C")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private IReadOnlyList<InventoryItem>? _shortages;
+    private IReadOnlyList<WasteByReason>? _waste;
+
+    // The label and the query below both derive from the one service window, so they cannot drift.
+    private readonly string _windowLabel = DashboardView.WindowDescription(InventoryService.DefaultWasteWindow);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _shortages = await Inventory.GetShortagesAsync();
+        _waste = await Inventory.GetWasteByReasonAsync();
+    }
+}
