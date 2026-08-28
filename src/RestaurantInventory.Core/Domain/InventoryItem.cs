@@ -9,6 +9,9 @@ namespace RestaurantInventory.Core.Domain;
 /// </summary>
 public class InventoryItem
 {
+    /// <summary>Longest an item name may be — mirrors the persistence column (see InventoryDbContext).</summary>
+    public const int MaxNameLength = 200;
+
     private readonly List<StockMovement> _movements = new();
 
     // Parameterless constructor for EF Core materialisation.
@@ -16,23 +19,24 @@ public class InventoryItem
 
     public InventoryItem(string name, UnitOfMeasure unitOfMeasure, decimal unitCost, decimal reorderLevel)
     {
-        Name = name;
+        // The unit is the one field with no later mutator: it is set here and never again, so
+        // historical StockMovements stay meaningful in a single unit (user story 8). The three
+        // editable fields go through UpdateDetails so their invariants live in exactly one place.
         UnitOfMeasure = unitOfMeasure;
-        UnitCost = unitCost;
-        ReorderLevel = reorderLevel;
+        UpdateDetails(name, unitCost, reorderLevel);
     }
 
     public int Id { get; private set; }
 
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; private set; } = string.Empty;
 
     /// <summary>Fixed after creation — StockMovement history stays meaningful in one unit.</summary>
     public UnitOfMeasure UnitOfMeasure { get; private set; }
 
-    public decimal UnitCost { get; set; }
+    public decimal UnitCost { get; private set; }
 
     /// <summary>Manager-set threshold; the item is in Shortage when QuantityOnHand &lt;= this.</summary>
-    public decimal ReorderLevel { get; set; }
+    public decimal ReorderLevel { get; private set; }
 
     /// <summary>
     /// Cached sum of this item's StockMovements. Updated only by the inventory
@@ -50,6 +54,32 @@ public class InventoryItem
     /// </summary>
     [NotMapped]
     public bool IsInShortage => QuantityOnHand <= ReorderLevel;
+
+    /// <summary>
+    /// Sets the three editable pieces of item metadata — name, <see cref="UnitCost"/>, and
+    /// manager-set <see cref="ReorderLevel"/> — validating them together. This is the only way to
+    /// change them, at creation or later; <see cref="UnitOfMeasure"/> is deliberately not among
+    /// them (user story 8) and <see cref="QuantityOnHand"/> is left to the ledger.
+    /// </summary>
+    /// <exception cref="InvalidItemException">
+    /// The name is blank, or a cost/level is negative; no field is changed.
+    /// </exception>
+    public void UpdateDetails(string name, decimal unitCost, decimal reorderLevel)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidItemException("An item name is required.");
+        var trimmed = name.Trim();
+        if (trimmed.Length > MaxNameLength)
+            throw new InvalidItemException($"An item name cannot exceed {MaxNameLength} characters.");
+        if (unitCost < 0)
+            throw new InvalidItemException("Unit cost cannot be negative.");
+        if (reorderLevel < 0)
+            throw new InvalidItemException("Reorder level cannot be negative.");
+
+        Name = trimmed;
+        UnitCost = unitCost;
+        ReorderLevel = reorderLevel;
+    }
 
     /// <summary>
     /// Validates and records a single change to this item's stock, appending it to the

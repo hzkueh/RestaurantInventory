@@ -6,13 +6,17 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h1 class="mb-0">Inventory items</h1>
 
-    @* Read-only filter: a plain query-string toggle, so the page stays static SSR — no circuit
-       needed just to narrow a list. The two states are mutually exclusive links. *@
-    <div class="btn-group" role="group" aria-label="Filter items">
-        <a class="btn btn-sm @(ShortagesOnly ? "btn-outline-secondary" : "btn-secondary")"
-           href="/items">All items</a>
-        <a class="btn btn-sm @(ShortagesOnly ? "btn-warning" : "btn-outline-warning")"
-           href="/items?shortages=true">In shortage only</a>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        @* Read-only filter: a plain query-string toggle, so the page stays static SSR — no circuit
+           needed just to narrow a list. The two states are mutually exclusive links. *@
+        <div class="btn-group" role="group" aria-label="Filter items">
+            <a class="btn btn-sm @(ShortagesOnly ? "btn-outline-secondary" : "btn-secondary")"
+               href="/items">All items</a>
+            <a class="btn btn-sm @(ShortagesOnly ? "btn-warning" : "btn-outline-warning")"
+               href="/items?shortages=true">In shortage only</a>
+        </div>
+
+        <a class="btn btn-sm btn-primary" href="/items/new">New item</a>
     </div>
 </div>
 

@@ -1,0 +1,84 @@
+@page "/items/new"
+@inject InventoryService Inventory
+@inject NavigationManager Navigation
+
+<PageTitle>New item · Restaurant Inventory</PageTitle>
+
+<div class="mb-3">
+    <a href="/items">&larr; Back to items</a>
+</div>
+
+<h1 class="mb-4">New inventory item</h1>
+
+<div class="row">
+    <div class="col-12 col-lg-6">
+        <EditForm Model="Input" method="post" OnValidSubmit="CreateAsync" FormName="item-create">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="alert alert-danger" role="alert">@_error</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label" for="name">Name</label>
+                <InputText id="name" @bind-Value="Input.Name" class="form-control" placeholder="e.g. Basmati rice" />
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="unit">Unit of measure</label>
+                <InputSelect id="unit" @bind-Value="Input.UnitOfMeasure" class="form-select">
+                    @foreach (var unit in Enum.GetValues<UnitOfMeasure>())
+                    {
+                        <option value="@unit">@UnitDisplay.Abbreviation(unit)</option>
+                    }
+                </InputSelect>
+                <div class="form-text">Fixed once the item is created — it keeps the movement history in one unit.</div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-sm-6 mb-3">
+                    <label class="form-label" for="unitCost">Unit cost</label>
+                    <InputNumber id="unitCost" @bind-Value="Input.UnitCost" class="form-control" step="0.01" />
+                    <ValidationMessage For="() => Input.UnitCost" class="text-danger" />
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label class="form-label" for="reorderLevel">Reorder level</label>
+                    <InputNumber id="reorderLevel" @bind-Value="Input.ReorderLevel" class="form-control" step="0.001" />
+                    <ValidationMessage For="() => Input.ReorderLevel" class="text-danger" />
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-primary">Create item</button>
+                <a href="/items" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private ItemFormModel Input { get; set; } = default!;
+
+    private string? _error;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task CreateAsync()
+    {
+        // The form annotations catch bad input up front, but the aggregate is the authority and
+        // re-validates: surface any rejection it raises as a form-level error rather than a 500.
+        try
+        {
+            var created = await Inventory.CreateItemAsync(
+                Input.Name, Input.UnitOfMeasure, Input.UnitCost, Input.ReorderLevel);
+            Navigation.NavigateTo($"/items/{created.Id}");
+        }
+        catch (InvalidItemException ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

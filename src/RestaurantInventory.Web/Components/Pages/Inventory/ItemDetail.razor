@@ -20,12 +20,13 @@ else
         <a href="/items">&larr; Back to items</a>
     </div>
 
-    <div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
         <h1 class="mb-0">@_item.Name</h1>
         @if (_item.IsInShortage)
         {
             <span class="badge text-bg-warning">Shortage</span>
         }
+        <a class="btn btn-sm btn-outline-secondary ms-auto" href="/items/@_item.Id/edit">Edit item</a>
     </div>
 
     @* Status in one place (user story 13): the four figures a Manager needs to judge the item. *@

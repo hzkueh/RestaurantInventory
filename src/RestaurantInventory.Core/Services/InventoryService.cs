@@ -59,6 +59,47 @@ public sealed class InventoryService
     }
 
     /// <summary>
+    /// Creates a new <see cref="InventoryItem"/> with a fixed <see cref="UnitOfMeasure"/> and the
+    /// manager-set metadata, and persists it so it appears in the items list (user stories 5–6).
+    /// </summary>
+    /// <exception cref="InvalidItemException">The metadata is invalid; nothing is persisted.</exception>
+    public async Task<InventoryItem> CreateItemAsync(
+        string name,
+        UnitOfMeasure unitOfMeasure,
+        decimal unitCost,
+        decimal reorderLevel,
+        CancellationToken cancellationToken = default)
+    {
+        var item = new InventoryItem(name, unitOfMeasure, unitCost, reorderLevel);
+        _db.InventoryItems.Add(item);
+        await _db.SaveChangesAsync(cancellationToken);
+        return item;
+    }
+
+    /// <summary>
+    /// Updates an existing item's editable metadata — name, <see cref="InventoryItem.UnitCost"/>,
+    /// and <see cref="InventoryItem.ReorderLevel"/> (user story 7). The item's
+    /// <see cref="UnitOfMeasure"/> is intentionally not a parameter: it is fixed after creation
+    /// (user story 8), so there is no way to change it through this seam.
+    /// </summary>
+    /// <exception cref="InvalidItemException">
+    /// No item has that id, or the new metadata is invalid; nothing is persisted.
+    /// </exception>
+    public async Task UpdateItemAsync(
+        int id,
+        string name,
+        decimal unitCost,
+        decimal reorderLevel,
+        CancellationToken cancellationToken = default)
+    {
+        var item = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
+            ?? throw new InvalidItemException($"InventoryItem {id} does not exist.");
+
+        item.UpdateDetails(name, unitCost, reorderLevel);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Every item name-ordered, or — when <paramref name="shortagesOnly"/> is set — only those
     /// currently in Shortage (<see cref="InventoryItem.IsInShortage"/>). Backs the items list and
     /// its Shortage filter; the returned items carry their cached <see cref="InventoryItem.QuantityOnHand"/>
