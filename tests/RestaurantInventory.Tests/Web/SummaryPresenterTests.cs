@@ -26,10 +26,13 @@ public sealed class SummaryPresenterTests
         }
     }
 
+    private static InventoryBriefing Briefing(string headline = "All good.")
+        => new(headline, new[] { "Milk is short." }, Array.Empty<string>(), new[] { "Spoiled waste cost $6.30." });
+
     [Fact]
     public void BeforeGenerating_IsIdleAndHasNotCalledTheService()
     {
-        var fake = new FakeInsightService(InventorySummary.Available("anything"));
+        var fake = new FakeInsightService(InventorySummary.Available(Briefing()));
         var presenter = new SummaryPresenter(fake);
 
         Assert.Equal(SummaryState.Idle, presenter.State);
@@ -37,21 +40,21 @@ public sealed class SummaryPresenterTests
     }
 
     [Fact]
-    public async Task Generate_WithAnAvailableSummary_ExposesTheNarrative()
+    public async Task Generate_WithAnAvailableSummary_ExposesTheBriefing()
     {
-        var fake = new FakeInsightService(InventorySummary.Available("Tomatoes are low; waste cost $12."));
+        var fake = new FakeInsightService(InventorySummary.Available(Briefing("Tomatoes are low.")));
         var presenter = new SummaryPresenter(fake);
 
         await presenter.GenerateAsync();
 
         Assert.Equal(1, fake.Calls);
         Assert.Equal(SummaryState.Available, presenter.State);
-        Assert.Equal("Tomatoes are low; waste cost $12.", presenter.Narrative);
+        Assert.Equal("Tomatoes are low.", presenter.Briefing!.Headline);
         Assert.Null(presenter.UnavailableReason);
     }
 
     [Fact]
-    public async Task Generate_WhenUnavailable_ExposesTheReasonAndNoNarrative()
+    public async Task Generate_WhenUnavailable_ExposesTheReasonAndNoBriefing()
     {
         var fake = new FakeInsightService(InventorySummary.Unavailable("No AI key configured."));
         var presenter = new SummaryPresenter(fake);
@@ -60,24 +63,24 @@ public sealed class SummaryPresenterTests
 
         Assert.Equal(SummaryState.Unavailable, presenter.State);
         Assert.Equal("No AI key configured.", presenter.UnavailableReason);
-        Assert.Null(presenter.Narrative);
+        Assert.Null(presenter.Briefing);
     }
 
     [Fact]
     public async Task Regenerating_AfterUnavailable_ClearsTheStaleReason()
     {
-        // A page kept open across a config change (key added) must not show both a narrative and a
+        // A page kept open across a config change (key added) must not show both a briefing and a
         // leftover "unavailable" reason: each generate fully replaces the previous outcome.
         var unavailable = new FakeInsightService(InventorySummary.Unavailable("No AI key configured."));
         var presenter = new SummaryPresenter(unavailable);
         await presenter.GenerateAsync();
 
-        var available = new FakeInsightService(InventorySummary.Available("All good."));
+        var available = new FakeInsightService(InventorySummary.Available(Briefing()));
         presenter = new SummaryPresenter(available);
         await presenter.GenerateAsync();
 
         Assert.Equal(SummaryState.Available, presenter.State);
-        Assert.Equal("All good.", presenter.Narrative);
+        Assert.NotNull(presenter.Briefing);
         Assert.Null(presenter.UnavailableReason);
     }
 }

@@ -35,7 +35,7 @@ public sealed class GeminiInsightServiceTests
         var result = await service.SummariseAsync();
 
         Assert.False(result.IsAvailable);
-        Assert.Null(result.Narrative);
+        Assert.Null(result.Briefing);
         Assert.Contains("no AI provider key", result.UnavailableReason);
     }
 }

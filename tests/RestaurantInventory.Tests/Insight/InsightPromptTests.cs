@@ -34,13 +34,15 @@ public sealed class InsightPromptTests
     }
 
     [Fact]
-    public void Build_IncludesEachWasteReasonWithItsMoneyValue()
+    public void Build_IncludesEachWasteReasonWithItsMoneyValue_CurrencyFormatted()
     {
         var prompt = InsightPrompt.Build(Report(
             waste: new[] { new WasteByReason(WasteReason.Spoiled, Quantity: 3m, MoneyValue: 12.50m) }));
 
         Assert.Contains("Spoiled", prompt);
-        Assert.Contains("12.50", prompt);
+        // Money is fed to the model already currency-formatted (same "C" format as the dashboard),
+        // so it echoes it back formatted rather than as a bare number.
+        Assert.Contains(12.50m.ToString("C"), prompt);
     }
 
     [Fact]

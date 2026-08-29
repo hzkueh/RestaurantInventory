@@ -23,12 +23,23 @@ public static class InsightPrompt
         var sb = new StringBuilder();
         sb.AppendLine(
             "You are an assistant to a restaurant Manager. Using only the inventory data below, " +
-            "write a concise briefing of the current state as a short list of bullet points. Cover " +
-            "what is in shortage and needs reordering, notable recent stock movements, and what waste " +
-            "has cost. Rules: output only the bullet lines, with no heading, intro, or closing line. " +
-            "Start each bullet on its own line with '- '. Keep each bullet to one short sentence that " +
-            "states the result directly and names specific items and figures. Aim for at most six " +
-            "bullets. Do not invent data beyond what is given, and use no other Markdown formatting.");
+            "produce a concise briefing of the current state as a single JSON object with exactly " +
+            "this shape:");
+        sb.AppendLine("""
+            {
+              "headline": "one short sentence summarising the overall state",
+              "shortages": ["one short bullet per item that needs reordering"],
+              "recentMovements": ["one short bullet per notable recent movement"],
+              "waste": ["one short bullet per waste reason, stating what it cost"]
+            }
+            """);
+        sb.AppendLine(
+            "Rules: each bullet is one short sentence that states the result directly and names " +
+            "specific items and figures. Reproduce every money figure exactly as it appears below — " +
+            "it is already currency-formatted; do not add quotation marks or any other characters " +
+            "around it. If a section has nothing to report, use an empty array. Aim for at most six " +
+            "bullets per section. Do not invent data beyond what is given. Output only the JSON " +
+            "object, with no surrounding text or Markdown.");
         sb.AppendLine();
 
         sb.AppendLine("## Items in shortage (quantity on hand at or below reorder level)");
@@ -83,8 +94,10 @@ public static class InsightPrompt
     private static string Number(decimal value)
         => value.ToString("0.###", CultureInfo.InvariantCulture);
 
+    // Money is written currency-formatted so the model echoes it back already formatted (e.g. $150.00);
+    // uses the same current-culture "C" format as the dashboard so the two screens agree.
     private static string Money(decimal value)
-        => value.ToString("0.00", CultureInfo.InvariantCulture);
+        => value.ToString("C", CultureInfo.CurrentCulture);
 
     private static string Unit(UnitOfMeasure unit) => unit.Abbreviate();
 }

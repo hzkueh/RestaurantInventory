@@ -37,22 +37,28 @@
     case SummaryState.Available:
         <div class="card">
             <div class="card-body">
-                @{
-                    var bullets = SummaryView.Bullets(_presenter.Narrative);
-                }
-                @if (bullets.Count > 0)
+                @if (!string.IsNullOrWhiteSpace(_presenter.Briefing!.Headline))
                 {
-                    <ul class="summary-bullets mb-0">
-                        @foreach (var bullet in bullets)
+                    <p class="summary-headline">@_presenter.Briefing.Headline</p>
+                }
+                @foreach (var group in Groups(_presenter.Briefing))
+                {
+                    <div class="summary-group">
+                        <h2 class="summary-group-label">@group.Label</h2>
+                        @if (group.Items.Count > 0)
                         {
-                            <li>@bullet</li>
+                            <ul class="summary-bullets mb-0">
+                                @foreach (var item in group.Items)
+                                {
+                                    <li>@item</li>
+                                }
+                            </ul>
                         }
-                    </ul>
-                }
-                else
-                {
-                    @* Fall back to the raw text if the model returned no parseable bullets. *@
-                    <div class="summary-narrative">@_presenter.Narrative</div>
+                        else
+                        {
+                            <p class="text-muted mb-0">None to report.</p>
+                        }
+                    </div>
                 }
             </div>
         </div>
@@ -65,6 +71,15 @@
 
 @code {
     private SummaryPresenter _presenter = default!;
+
+    // Shortages first, then recent movements, then waste (the group order for this page).
+    private static IReadOnlyList<(string Label, IReadOnlyList<string> Items)> Groups(InventoryBriefing briefing)
+        => new (string, IReadOnlyList<string>)[]
+        {
+            ("Shortages", briefing.Shortages),
+            ("Recent movements", briefing.RecentMovements),
+            ("Waste", briefing.Waste),
+        };
 
     protected override void OnInitialized()
     {
