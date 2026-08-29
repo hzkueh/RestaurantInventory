@@ -71,14 +71,15 @@ public sealed class GeminiInsightService : IInventoryInsightService
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            var narrative = GeminiResponseReader.ReadNarrative(json);
-            if (narrative is null)
+            var briefingJson = GeminiResponseReader.ReadNarrative(json);
+            var briefing = briefingJson is null ? null : InventoryBriefingReader.Read(briefingJson);
+            if (briefing is null)
             {
-                _logger.LogWarning("Gemini insight response carried no usable narrative text.");
+                _logger.LogWarning("Gemini insight response carried no usable briefing.");
                 return InventorySummary.Unavailable(CallFailedMessage);
             }
 
-            return InventorySummary.Available(narrative);
+            return InventorySummary.Available(briefing);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

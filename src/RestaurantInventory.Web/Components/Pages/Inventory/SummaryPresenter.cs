@@ -33,7 +33,7 @@ public sealed class SummaryPresenter
     public SummaryState State { get; private set; } = SummaryState.Idle;
 
     /// <summary>The generated briefing when <see cref="State"/> is <see cref="SummaryState.Available"/>.</summary>
-    public string? Narrative { get; private set; }
+    public InventoryBriefing? Briefing { get; private set; }
 
     /// <summary>Why no briefing is shown when <see cref="State"/> is <see cref="SummaryState.Unavailable"/>.</summary>
     public string? UnavailableReason { get; private set; }
@@ -41,7 +41,7 @@ public sealed class SummaryPresenter
     /// <summary>
     /// Requests a briefing — the only thing that calls the service, so no call happens until the
     /// Manager asks (user story 28). Each call fully replaces the previous outcome, so a stale
-    /// narrative or "unavailable" reason can never linger alongside a new result.
+    /// briefing or "unavailable" reason can never linger alongside a new result.
     /// </summary>
     public async Task GenerateAsync(CancellationToken cancellationToken = default)
     {
@@ -49,14 +49,14 @@ public sealed class SummaryPresenter
         var summary = await _insight.SummariseAsync(cancellationToken);
         if (summary.IsAvailable)
         {
-            Narrative = summary.Narrative;
+            Briefing = summary.Briefing;
             UnavailableReason = null;
             State = SummaryState.Available;
         }
         else
         {
             UnavailableReason = summary.UnavailableReason;
-            Narrative = null;
+            Briefing = null;
             State = SummaryState.Unavailable;
         }
     }

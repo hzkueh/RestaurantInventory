@@ -6,13 +6,20 @@ namespace RestaurantInventory.Web.Infrastructure;
 // Minimal request/response shapes for the Gemini generateContent REST endpoint. Hand-rolled DTOs
 // (no third-party AI SDK, per ADR-0002); only the handful of fields this feature uses are modelled.
 
-/// <summary>Request body for <c>:generateContent</c>: one user turn carrying the prompt text.</summary>
+/// <summary>Request body for <c>:generateContent</c>: one user turn plus a JSON-output directive.</summary>
 public sealed record GeminiRequest(
-    [property: JsonPropertyName("contents")] IReadOnlyList<GeminiContent> Contents)
+    [property: JsonPropertyName("contents")] IReadOnlyList<GeminiContent> Contents,
+    [property: JsonPropertyName("generationConfig")] GeminiGenerationConfig GenerationConfig)
 {
     public static GeminiRequest ForPrompt(string prompt)
-        => new(new[] { new GeminiContent(new[] { new GeminiPart(prompt) }) });
+        => new(
+            new[] { new GeminiContent(new[] { new GeminiPart(prompt) }) },
+            new GeminiGenerationConfig("application/json"));
 }
+
+/// <summary>Generation options — here, asking the model to return a JSON body so it parses reliably.</summary>
+public sealed record GeminiGenerationConfig(
+    [property: JsonPropertyName("responseMimeType")] string ResponseMimeType);
 
 public sealed record GeminiContent(
     [property: JsonPropertyName("parts")] IReadOnlyList<GeminiPart> Parts);
