@@ -1,0 +1,5 @@
+/* Preserve the paragraph breaks the LLM returns without letting it inject any markup. */
+.summary-narrative {
+    white-space: pre-wrap;
+    line-height: 1.6;
+}

@@ -142,6 +142,25 @@ public sealed class InventoryService
     }
 
     /// <summary>
+    /// The most recent StockMovements across all items, newest-first, capped at
+    /// <paramref name="limit"/>. Backs the AI briefing's "recent movements" section (ticket 08);
+    /// each movement carries its <see cref="StockMovement.InventoryItem"/> so a caller can name the
+    /// item and its unit without further queries.
+    /// </summary>
+    public async Task<IReadOnlyList<StockMovement>> GetRecentMovementsAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.StockMovements
+            .AsNoTracking()
+            .Include(m => m.InventoryItem)
+            .OrderByDescending(m => m.Timestamp)
+            .ThenByDescending(m => m.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Waste totalled by <see cref="WasteReason"/> and valued in money over a recent window
     /// (default <see cref="DefaultWasteWindow"/>), costliest reason first.
     /// </summary>

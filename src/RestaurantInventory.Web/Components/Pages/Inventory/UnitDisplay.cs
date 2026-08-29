@@ -8,15 +8,7 @@ namespace RestaurantInventory.Web.Components.Pages.Inventory;
 /// </summary>
 public static class UnitDisplay
 {
-    public static string Abbreviation(UnitOfMeasure unit) => unit switch
-    {
-        UnitOfMeasure.Kg => "kg",
-        UnitOfMeasure.G => "g",
-        UnitOfMeasure.L => "L",
-        UnitOfMeasure.Ml => "ml",
-        UnitOfMeasure.Each => "each",
-        _ => unit.ToString(),
-    };
+    public static string Abbreviation(UnitOfMeasure unit) => unit.Abbreviate();
 
     /// <summary>A quantity with its unit, e.g. <c>12.5 kg</c>. Trailing zeros are trimmed.</summary>
     public static string Quantity(decimal quantity, UnitOfMeasure unit)
