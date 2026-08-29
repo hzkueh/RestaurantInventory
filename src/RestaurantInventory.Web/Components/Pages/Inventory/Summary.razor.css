@@ -3,3 +3,17 @@
     white-space: pre-wrap;
     line-height: 1.6;
 }
+
+/* Concise, direct bullet points — the primary rendering of the briefing. */
+.summary-bullets {
+    padding-left: 1.25rem;
+}
+
+.summary-bullets li {
+    margin-bottom: 0.4rem;
+    line-height: 1.5;
+}
+
+.summary-bullets li:last-child {
+    margin-bottom: 0;
+}
