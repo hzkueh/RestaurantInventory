@@ -19,6 +19,19 @@ artifacts/
 # Secrets — AI key lives here (see ADR-0002); .env.example is committed
 .env
 
+# Claude Code — shared launch.json is committed; local settings are personal
+.claude/settings.local.json
+
+# Test output
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+coverage.*.json
+coverage.cobertura.xml
+
+# SQLite rollback journal (non-WAL fallback)
+*.db-journal
+
 # OS
 .DS_Store
 Thumbs.db

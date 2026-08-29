@@ -3,10 +3,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RestaurantInventory.Core.Persistence;
 using RestaurantInventory.Core.Services;
+using RestaurantInventory.Core.Services.Insight;
 using RestaurantInventory.Web.Components;
 using RestaurantInventory.Web.Data;
+using RestaurantInventory.Web.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Layer the git-ignored .env (AI key, see ADR-0002 / .env.example) into configuration before
+// anything reads it. Missing file is a no-op — the AI page then reports itself unavailable.
+DotEnv.Load(builder.Configuration, builder.Environment.ContentRootPath);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -18,6 +24,18 @@ builder.Services.AddDbContext<InventoryDbContext>(options =>
 // The ledger seam every Blazor page calls into (ticket 02).
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<InventoryService>();
+
+// --- AI summary (ticket 08 / ADR-0002): the insight seam and its Gemini implementation. ---
+// The provider is hidden behind IInventoryInsightService; the summary page depends only on the
+// interface, so swapping providers is a single new implementation. GeminiInsightService uses a
+// typed HttpClient via IHttpClientFactory (no third-party AI SDK). With no key configured it
+// degrades to an "unavailable" result, keeping AI off the critical path of core operations.
+builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+builder.Services.AddHttpClient<IInventoryInsightService, GeminiInsightService>(client =>
+{
+    client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // --- Auth (ticket 03): cookie-based ASP.NET Core Identity, one seeded Manager. ---
 // Identity lives in its own DbContext (and its own migrations-history table) inside the
