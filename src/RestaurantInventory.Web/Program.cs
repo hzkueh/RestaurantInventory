@@ -84,12 +84,17 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    services.GetRequiredService<InventoryDbContext>().Database.Migrate();
+    var inventoryDb = services.GetRequiredService<InventoryDbContext>();
+    inventoryDb.Database.Migrate();
     services.GetRequiredService<AppIdentityDbContext>().Database.Migrate();
 
     var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
     var seedOptions = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ManagerSeedOptions>>().Value;
     await ManagerSeeder.SeedAsync(userManager, seedOptions);
+
+    // Populate a realistic starting catalogue on first run so every screen is demonstrable with
+    // no manual setup (ticket 09). Idempotent: a no-op once any InventoryItem exists.
+    await InventorySeeder.SeedAsync(inventoryDb, services.GetRequiredService<TimeProvider>());
 }
 
 // Configure the HTTP request pipeline.
