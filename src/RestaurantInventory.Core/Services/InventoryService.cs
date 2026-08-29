@@ -151,13 +151,19 @@ public sealed class InventoryService
         int limit = 20,
         CancellationToken cancellationToken = default)
     {
-        return await _db.StockMovements
+        // Ordering and the Take are done in memory, not in SQL: SQLite cannot ORDER BY a
+        // DateTimeOffset column (the same limitation that keeps Shortage/Waste client-side above).
+        // For a single-restaurant MVP the movement count is tiny, so loading then trimming is fine.
+        var movements = await _db.StockMovements
             .AsNoTracking()
             .Include(m => m.InventoryItem)
+            .ToListAsync(cancellationToken);
+
+        return movements
             .OrderByDescending(m => m.Timestamp)
             .ThenByDescending(m => m.Id)
             .Take(limit)
-            .ToListAsync(cancellationToken);
+            .ToList();
     }
 
     /// <summary>
