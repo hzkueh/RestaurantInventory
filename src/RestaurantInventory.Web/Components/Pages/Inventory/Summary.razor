@@ -1,0 +1,92 @@
+@page "/summary"
+@rendermode InteractiveServer
+@using RestaurantInventory.Core.Services.Insight
+@inject IInventoryInsightService Insight
+
+<PageTitle>AI summary · Restaurant Inventory</PageTitle>
+
+<h1 class="mb-1">AI summary</h1>
+<p class="text-muted">
+    A plain-language briefing of current inventory state — shortages, recent movements, and what
+    waste is costing. Generated on demand.
+</p>
+
+<button type="button" class="btn btn-primary mb-3"
+        @onclick="GenerateAsync" disabled="@(_presenter.State == SummaryState.Generating)">
+    @if (_presenter.State == SummaryState.Generating)
+    {
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+        <span>Generating…</span>
+    }
+    else
+    {
+        <span>@(_presenter.State == SummaryState.Idle ? "Generate summary" : "Regenerate")</span>
+    }
+</button>
+
+@switch (_presenter.State)
+{
+    case SummaryState.Idle:
+        <p class="text-muted"><em>No summary yet — select <strong>Generate summary</strong> to create one.</em></p>
+        break;
+
+    case SummaryState.Generating:
+        <p class="text-muted"><em>Contacting the AI provider…</em></p>
+        break;
+
+    case SummaryState.Available:
+        <div class="card">
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(_presenter.Briefing!.Headline))
+                {
+                    <p class="summary-headline">@_presenter.Briefing.Headline</p>
+                }
+                @foreach (var group in Groups(_presenter.Briefing))
+                {
+                    <div class="summary-group">
+                        <h2 class="summary-group-label">@group.Label</h2>
+                        @if (group.Items.Count > 0)
+                        {
+                            <ul class="summary-bullets mb-0">
+                                @foreach (var item in group.Items)
+                                {
+                                    <li>@item</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">None to report.</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        break;
+
+    case SummaryState.Unavailable:
+        <div class="alert alert-warning" role="alert">@_presenter.UnavailableReason</div>
+        break;
+}
+
+@code {
+    private SummaryPresenter _presenter = default!;
+
+    // Shortages first, then recent movements, then waste (the group order for this page).
+    private static IReadOnlyList<(string Label, IReadOnlyList<string> Items)> Groups(InventoryBriefing briefing)
+        => new (string, IReadOnlyList<string>)[]
+        {
+            ("Shortages", briefing.Shortages),
+            ("Recent movements", briefing.RecentMovements),
+            ("Waste", briefing.Waste),
+        };
+
+    protected override void OnInitialized()
+    {
+        // Constructed only — no call is made here, so visiting the page never contacts the provider
+        // (user story 28). The call happens exclusively when the Manager clicks Generate.
+        _presenter = new SummaryPresenter(Insight);
+    }
+
+    private Task GenerateAsync() => _presenter.GenerateAsync();
+}

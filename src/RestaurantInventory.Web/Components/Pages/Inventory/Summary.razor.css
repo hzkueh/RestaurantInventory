@@ -1,0 +1,35 @@
+/* Bold, one-line verdict at the top of the briefing. */
+.summary-headline {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+/* Each labelled group of bullets. */
+.summary-group + .summary-group {
+    margin-top: 1rem;
+}
+
+.summary-group-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bs-secondary-color, #6c757d);
+    margin-bottom: 0.35rem;
+}
+
+/* Concise, direct bullet points within a group. */
+.summary-bullets {
+    padding-left: 1.25rem;
+}
+
+.summary-bullets li {
+    margin-bottom: 0.4rem;
+    line-height: 1.5;
+}
+
+.summary-bullets li:last-child {
+    margin-bottom: 0;
+}

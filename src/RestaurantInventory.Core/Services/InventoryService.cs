@@ -142,6 +142,31 @@ public sealed class InventoryService
     }
 
     /// <summary>
+    /// The most recent StockMovements across all items, newest-first, capped at
+    /// <paramref name="limit"/>. Backs the AI briefing's "recent movements" section (ticket 08);
+    /// each movement carries its <see cref="StockMovement.InventoryItem"/> so a caller can name the
+    /// item and its unit without further queries.
+    /// </summary>
+    public async Task<IReadOnlyList<StockMovement>> GetRecentMovementsAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        // Ordering and the Take are done in memory, not in SQL: SQLite cannot ORDER BY a
+        // DateTimeOffset column (the same limitation that keeps Shortage/Waste client-side above).
+        // For a single-restaurant MVP the movement count is tiny, so loading then trimming is fine.
+        var movements = await _db.StockMovements
+            .AsNoTracking()
+            .Include(m => m.InventoryItem)
+            .ToListAsync(cancellationToken);
+
+        return movements
+            .OrderByDescending(m => m.Timestamp)
+            .ThenByDescending(m => m.Id)
+            .Take(limit)
+            .ToList();
+    }
+
+    /// <summary>
     /// Waste totalled by <see cref="WasteReason"/> and valued in money over a recent window
     /// (default <see cref="DefaultWasteWindow"/>), costliest reason first.
     /// </summary>
