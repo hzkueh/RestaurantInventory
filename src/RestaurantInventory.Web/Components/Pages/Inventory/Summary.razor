@@ -36,7 +36,25 @@
 
     case SummaryState.Available:
         <div class="card">
-            <div class="card-body summary-narrative">@_presenter.Narrative</div>
+            <div class="card-body">
+                @{
+                    var bullets = SummaryView.Bullets(_presenter.Narrative);
+                }
+                @if (bullets.Count > 0)
+                {
+                    <ul class="summary-bullets mb-0">
+                        @foreach (var bullet in bullets)
+                        {
+                            <li>@bullet</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    @* Fall back to the raw text if the model returned no parseable bullets. *@
+                    <div class="summary-narrative">@_presenter.Narrative</div>
+                }
+            </div>
         </div>
         break;
 

@@ -23,10 +23,12 @@ public static class InsightPrompt
         var sb = new StringBuilder();
         sb.AppendLine(
             "You are an assistant to a restaurant Manager. Using only the inventory data below, " +
-            "write a short, plain-language briefing (a few sentences) of the current state: what is " +
-            "in shortage and needs reordering, notable recent stock movements, and what waste has " +
-            "cost. Be concrete and refer to specific items and figures. Do not invent data beyond " +
-            "what is given, and do not use Markdown formatting.");
+            "write a concise briefing of the current state as a short list of bullet points. Cover " +
+            "what is in shortage and needs reordering, notable recent stock movements, and what waste " +
+            "has cost. Rules: output only the bullet lines, with no heading, intro, or closing line. " +
+            "Start each bullet on its own line with '- '. Keep each bullet to one short sentence that " +
+            "states the result directly and names specific items and figures. Aim for at most six " +
+            "bullets. Do not invent data beyond what is given, and use no other Markdown formatting.");
         sb.AppendLine();
 
         sb.AppendLine("## Items in shortage (quantity on hand at or below reorder level)");
