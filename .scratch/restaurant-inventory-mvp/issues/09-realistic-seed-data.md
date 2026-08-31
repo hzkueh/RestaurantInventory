@@ -15,6 +15,8 @@
 
 ## Comments
 
+**2026-08-31 — Complete.** All acceptance criteria implemented and verified; merged via hzkueh/RestaurantInventory#6.
+
 Implemented `InventorySeeder` (`src/RestaurantInventory.Core/Persistence/InventorySeeder.cs`), wired into
 `Program.cs` startup after migrations (idempotent — skips once any InventoryItem exists). Seeds 9 items
 across Kg/G/L/Each with varied cost and reorder levels; movements are replayed through the
