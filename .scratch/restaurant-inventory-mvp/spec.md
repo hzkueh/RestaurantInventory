@@ -1,6 +1,8 @@
 # Spec: Restaurant Inventory MVP
 
-Status: ready-for-agent
+Status: complete
+
+_All 10 implementation tickets delivered and merged to `main` (tickets 01–10). User stories 1–32 covered._
 
 _Vocabulary follows [CONTEXT.md](../../CONTEXT.md). Respects [ADR-0001](../../docs/adr/0001-stockmovement-ledger.md) (StockMovement ledger) and [ADR-0002](../../docs/adr/0002-ai-insight-provider.md) (AI insight behind a seam)._
 
